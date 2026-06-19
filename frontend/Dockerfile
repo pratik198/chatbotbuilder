@@ -8,7 +8,7 @@ WORKDIR /build
 # Widget: install deps then build
 # vite.config.js outputs to ../frontend/public/widget.js
 COPY widget/package*.json ./widget/
-RUN cd widget && npm install --silent
+RUN cd widget && npm install --no-audit --no-fund
 
 COPY widget ./widget
 RUN mkdir -p frontend/public && cd widget && npm run build
@@ -16,7 +16,7 @@ RUN mkdir -p frontend/public && cd widget && npm run build
 
 # Frontend: install deps then build
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci --silent
+RUN cd frontend && npm ci --no-audit --no-fund
 
 COPY frontend ./frontend
 # widget.js already at frontend/public/widget.js from the step above
