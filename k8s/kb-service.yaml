@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kb-service
+  namespace: chatplatform
+  labels:
+    app: kb-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kb-service
+  template:
+    metadata:
+      labels:
+        app: kb-service
+    spec:
+      containers:
+        - name: kb-service
+          image: ghcr.io/your-org/chatplatform/kb-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: chatplatform-config
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chatplatform-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chatplatform-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatplatform-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatplatform-secrets
+                  key: MINIO_ROOT_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kb-service
+  namespace: chatplatform
+spec:
+  selector:
+    app: kb-service
+  ports:
+    - port: 8083
+      targetPort: 8083

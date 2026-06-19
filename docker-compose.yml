@@ -1,0 +1,303 @@
+version: "3.9"
+
+# ================================================================
+# chatplatform — Full Development Docker Compose
+# Usage: docker compose up -d
+# ================================================================
+
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: chatplatform-postgres
+    environment:
+      POSTGRES_DB: chatplatform
+      POSTGRES_USER: chatplatform
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatplatform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: chatplatform-redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+    restart: unless-stopped
+
+  # ── RabbitMQ ──────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: chatplatform-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: chatplatform
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # management UI at http://localhost:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+    restart: unless-stopped
+
+  # ── MinIO ─────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: chatplatform-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"  # MinIO console at http://localhost:9001
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+    restart: unless-stopped
+
+  # ── Qdrant ────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: chatplatform-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"  # REST API
+      - "6334:6334"  # gRPC
+    restart: unless-stopped
+
+  # ── Ollama (LLM inference) ────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chatplatform-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    # Uncomment below if you have an NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    restart: unless-stopped
+
+  # ── Backend: core-api ─────────────────────────────────────────
+  core-api:
+    build:
+      context: ./services/core-api
+      dockerfile: Dockerfile
+    container_name: chatplatform-core-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: chatplatform
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      APP_ENV: development
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Backend: chat-service ─────────────────────────────────────
+  chat-service:
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
+    container_name: chatplatform-chat-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: chatplatform
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      AI_SERVICE_URL: http://ai-service:8082
+      APP_ENV: development
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Backend: ai-service ───────────────────────────────────────
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: chatplatform-ai-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: chatplatform
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      OLLAMA_BASE_URL: http://ollama:11434
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6334
+      APP_ENV: development
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+      - qdrant
+    restart: unless-stopped
+
+  # ── Backend: kb-service ───────────────────────────────────────
+  kb-service:
+    build:
+      context: ./services/kb-service
+      dockerfile: Dockerfile
+    container_name: chatplatform-kb-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: chatplatform
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      MINIO_URL: http://minio:9000
+      JWT_SECRET: ${JWT_SECRET}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      OLLAMA_BASE_URL: http://ollama:11434
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6334
+      APP_ENV: development
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - minio
+      - qdrant
+      - ollama
+    restart: unless-stopped
+
+  # ── Backend: analytics-service ───────────────────────────────
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: chatplatform-analytics-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: chatplatform
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_ENV: development
+    ports:
+      - "8084:8084"
+    depends_on:
+      - postgres
+      - rabbitmq
+    restart: unless-stopped
+
+  # ── Backend: admin-service ───────────────────────────────────
+  admin-service:
+    build:
+      context: ./services/admin-service
+      dockerfile: Dockerfile
+    container_name: chatplatform-admin-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chatplatform
+      SPRING_DATASOURCE_USERNAME: chatplatform
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_ENV: development
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: chatplatform-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - core-api
+    restart: unless-stopped
+
+  # ── Nginx ─────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: chatplatform-nginx
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - core-api
+      - chat-service
+      - admin-service
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
+  qdrant_data:
+  ollama_data:
