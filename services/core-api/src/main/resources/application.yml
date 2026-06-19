@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: core-api
+
+  # ── Database ──────────────────────────────────────────────────
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatplatform}
+    username: ${SPRING_DATASOURCE_USERNAME:chatplatform}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate      # Flyway manages schema, Hibernate just validates
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ── Flyway (DB migrations) ────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # ── Redis ─────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  # ── RabbitMQ ──────────────────────────────────────────────────
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${SPRING_RABBITMQ_USERNAME:chatplatform}
+    password: ${SPRING_RABBITMQ_PASSWORD:changeme}
+    virtual-host: /
+
+  # ── Security (our own HS256 JWT — no external service needed) ──
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Decoder is configured programmatically in SecurityConfig using JwtService
+          # This property is intentionally left absent (no issuer-uri needed)
+
+# ── Server ───────────────────────────────────────────────────────
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ── Actuator (metrics + health) ───────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ── App-specific config ───────────────────────────────────────────
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-change-this-in-production-must-be-32-chars-minimum}
+    access-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:60}
+    refresh-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:30}
+  minio:
+    url: ${MINIO_URL:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket: chatplatform
+  encryption:
+    key: ${ENCRYPTION_KEY:0000000000000000000000000000000000000000000000000000000000000000}
+  rate-limit:
+    requests-per-minute: 200
+
+# ── Logging ───────────────────────────────────────────────────────
+logging:
+  level:
+    com.chatplatform: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
