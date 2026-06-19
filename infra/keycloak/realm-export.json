@@ -1,0 +1,75 @@
+{
+  "realm": "chatplatform",
+  "enabled": true,
+  "displayName": "Chatplatform",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 900,
+  "refreshTokenMaxReuse": 0,
+  "ssoSessionMaxLifespan": 36000,
+
+  "roles": {
+    "realm": [
+      { "name": "platform_admin", "description": "Super admin for the whole platform" },
+      { "name": "tenant:owner",   "description": "Owner of a workspace" },
+      { "name": "tenant:admin",   "description": "Admin of a workspace" },
+      { "name": "tenant:member",  "description": "Regular member" },
+      { "name": "tenant:analyst", "description": "Read-only analytics access" },
+      { "name": "tenant:agent",   "description": "Live chat agent" }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "chatplatform-frontend",
+      "name": "Chatplatform Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://app.yourdomain.com/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "https://app.yourdomain.com"
+      ]
+    },
+    {
+      "clientId": "chatplatform-backend",
+      "name": "Chatplatform Backend",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "secret": "changeme-backend-secret",
+      "redirectUris": ["*"]
+    }
+  ],
+
+  "protocolMappers": [
+    {
+      "name": "tenant_id mapper",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "consentRequired": false,
+      "config": {
+        "userinfo.token.claim": "true",
+        "user.attribute": "tenant_id",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "tenant_id",
+        "jsonType.label": "String"
+      }
+    }
+  ]
+}
