@@ -5,7 +5,6 @@ import io.qdrant.client.grpc.Collections.*;
 import io.qdrant.client.grpc.Points.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +27,7 @@ import static io.qdrant.client.VectorsFactory.vectors;
 public class VectorStoreService {
 
     private final QdrantClient qdrant;
-    private final EmbeddingModel embeddingModel;
+    private final OllamaEmbeddingClient embeddingClient;
 
     @Value("${app.kb.vector-dimension:768}")
     private int vectorDimension;
@@ -54,7 +53,7 @@ public class VectorStoreService {
 
         for (int i = 0; i < chunks.size(); i++) {
             String text = chunks.get(i);
-            float[] vector = embeddingModel.embed(text);
+            float[] vector = embeddingClient.embed(text);
 
             PointStruct point = PointStruct.newBuilder()
                     .setId(id(UUID.randomUUID()))
