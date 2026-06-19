@@ -42,7 +42,7 @@
   const shadow = (() => {
     const host = document.createElement('div')
     host.id = 'cp-widget-host'
-    host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;font-family:system-ui,sans-serif'
+    host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'
     document.body.appendChild(host)
     return host.attachShadow({ mode: 'closed' })
   })()
@@ -53,76 +53,93 @@
     * { box-sizing: border-box; margin: 0; padding: 0 }
     #bubble {
       width: 56px; height: 56px; border-radius: 50%;
-      background: var(--cp-primary, #2563eb); cursor: pointer;
+      background: var(--cp-primary, #6366f1); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2); border: none;
-      transition: transform 0.2s;
+      box-shadow: 0 10px 25px -5px rgba(99,102,241,0.3), 0 8px 10px -6px rgba(99,102,241,0.2); border: none;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
     }
     #bubble:hover { transform: scale(1.05) }
-    #bubble svg { width: 26px; height: 26px; fill: white }
+    #bubble:active { transform: scale(0.95) }
+    #bubble svg { width: 24px; height: 24px; fill: white }
 
     #panel {
       position: absolute; bottom: 68px; right: 0;
       width: 360px; height: 520px; max-height: 80vh;
-      background: white; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      background: white; border-radius: 20px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
       display: flex; flex-direction: column; overflow: hidden;
       transform-origin: bottom right;
-      transition: opacity 0.2s, transform 0.2s;
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid rgba(226, 232, 240, 0.8);
     }
-    #panel.hidden { opacity: 0; transform: scale(0.92); pointer-events: none }
+    #panel.hidden { opacity: 0; transform: scale(0.92) translate(0, 10px); pointer-events: none }
 
     #header {
-      background: var(--cp-primary, #2563eb); color: white;
-      padding: 16px; display: flex; align-items: center; gap: 10px;
+      background: var(--cp-primary, #6366f1); color: white;
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     #header .avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: rgba(255,255,255,0.25);
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255,255,255,0.15);
       display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
     #header .avatar svg { width: 20px; height: 20px; fill: white }
-    #header .name { font-weight: 600; font-size: 15px }
-    #header .status { font-size: 11px; opacity: 0.8 }
+    #header .info { display: flex; flex-direction: column; min-width: 0 }
+    #header .name { font-weight: 700; font-size: 14px; letter-spacing: -0.01em; truncate: true; line-height: 1.2 }
+    #header .status-container { display: flex; align-items: center; gap: 4px; margin-top: 2px }
+    #header .dot { width: 6px; height: 6px; border-radius: 50%; bg-color: #4ade80 }
+    #header .status { font-size: 10px; opacity: 0.85; font-weight: 600; text-transform: uppercase; tracking-wider: true }
     #close-btn {
-      margin-left: auto; background: transparent; border: none;
-      color: white; cursor: pointer; opacity: 0.7; padding: 4px;
+      margin-left: auto; background: rgba(255,255,255,0.1); border: none;
+      color: white; cursor: pointer; width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: background-color 0.2s;
     }
-    #close-btn:hover { opacity: 1 }
+    #close-btn:hover { background: rgba(255,255,255,0.2) }
+    #close-btn svg { width: 14px; height: 14px; fill: white }
 
     #messages {
-      flex: 1; overflow-y: auto; padding: 16px;
-      display: flex; flex-direction: column; gap: 10px;
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      background: #f8fafc;
     }
-    .msg { display: flex; max-width: 80% }
+    .msg { display: flex; max-width: 85%; align-items: flex-end; gap: 8px }
     .msg.user { align-self: flex-end }
     .msg.user .bubble {
-      background: var(--cp-primary, #2563eb); color: white;
-      border-radius: 18px 18px 4px 18px; padding: 10px 14px; font-size: 14px;
+      background: var(--cp-primary, #6366f1); color: white;
+      border-radius: 16px 16px 4px 16px; padding: 10px 14px; font-size: 13px;
+      line-height: 1.5; font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(99,102,241,0.08);
     }
     .msg.bot { align-self: flex-start }
     .msg.bot .bubble {
-      background: #f1f5f9; color: #1e293b;
-      border-radius: 18px 18px 18px 4px; padding: 10px 14px; font-size: 14px;
+      background: white; color: #1e293b;
+      border-radius: 16px 16px 16px 4px; padding: 10px 14px; font-size: 13px;
+      line-height: 1.5; border: 1px solid #e2e8f0; font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
     }
     .msg.bot .bubble.typing { color: #94a3b8 }
 
     #footer {
-      border-top: 1px solid #e2e8f0; padding: 12px;
-      display: flex; gap: 8px; align-items: center;
+      border-top: 1px solid #e2e8f0; padding: 12px 16px;
+      display: flex; gap: 8px; align-items: center; background: white;
     }
     #input {
-      flex: 1; border: 1.5px solid #e2e8f0; border-radius: 22px;
-      padding: 9px 14px; font-size: 14px; outline: none;
-      transition: border-color 0.2s; resize: none; height: 38px;
-      font-family: inherit; line-height: 1.4;
+      flex: 1; border: 1.5px solid #e2e8f0; border-radius: 14px;
+      padding: 10px 14px; font-size: 13px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s; resize: none; height: 38px;
+      font-family: inherit; line-height: 1.4; color: #1e293b;
     }
-    #input:focus { border-color: var(--cp-primary, #2563eb) }
+    #input:focus { border-color: var(--cp-primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,0.1) }
     #send-btn {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--cp-primary, #2563eb); border: none; cursor: pointer;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--cp-primary, #6366f1); border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: opacity 0.2s, background-color 0.2s;
     }
+    #send-btn:hover:not(:disabled) { opacity: 0.95 }
     #send-btn:disabled { opacity: 0.4; cursor: not-allowed }
     #send-btn svg { width: 16px; height: 16px; fill: white }
   `
@@ -141,7 +158,13 @@
   panel.innerHTML = `
     <div id="header">
       <div class="avatar">${svgBot()}</div>
-      <div><div class="name" id="bot-name">Assistant</div><div class="status" id="bot-status">Connecting...</div></div>
+      <div class="info">
+        <div class="name" id="bot-name">Assistant</div>
+        <div class="status-container">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#4ade80"></span>
+          <div class="status" id="bot-status">Connecting...</div>
+        </div>
+      </div>
       <button id="close-btn" title="Close">${svgX()}</button>
     </div>
     <div id="messages"></div>
@@ -241,6 +264,7 @@
     }
   }
 
+  // Send message
   function sendMessage(text) {
     if (!text.trim() || !isConnected) return
     messages.push({ role: 'user', content: text })

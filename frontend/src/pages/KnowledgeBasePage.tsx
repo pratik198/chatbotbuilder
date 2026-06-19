@@ -2,15 +2,16 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, BookOpen, FileText, Globe, Trash2, Loader2,
-  CheckCircle, XCircle, Clock, Upload, Link2
+  CheckCircle, XCircle, Clock, Upload, Link2, AlertCircle
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import api from '@/lib/api'
 
-const STATUS_ICONS: Record<string, { icon: any; color: string }> = {
-  indexed:    { icon: CheckCircle, color: 'text-green-500' },
-  processing: { icon: Loader2,     color: 'text-blue-500 animate-spin' },
-  pending:    { icon: Clock,       color: 'text-gray-400' },
-  failed:     { icon: XCircle,     color: 'text-red-500' },
+const STATUS_ICONS: Record<string, { icon: any; color: string; label: string }> = {
+  indexed:    { icon: CheckCircle, color: 'text-emerald-500 dark:text-emerald-400', label: 'Indexed' },
+  processing: { icon: Loader2,     color: 'text-indigo-500 animate-spin', label: 'Processing' },
+  pending:    { icon: Clock,       color: 'text-slate-400', label: 'Pending' },
+  failed:     { icon: XCircle,     color: 'text-red-500', label: 'Failed' },
 }
 
 export default function KnowledgeBasePage() {
@@ -22,7 +23,7 @@ export default function KnowledgeBasePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const qc = useQueryClient()
 
-  // ── Queries ──────────────────────────────────────────────────
+  // Queries
   const { data: kbList, isLoading: loadingKbs } = useQuery({
     queryKey: ['knowledge-bases'],
     queryFn: () => api.get('/knowledge-bases').then((r) => r.data.data?.items ?? []),
@@ -37,13 +38,13 @@ export default function KnowledgeBasePage() {
     queryFn: () =>
       api.get(`/knowledge-bases/${activeKbId}/documents`).then((r) => r.data.data ?? []),
     enabled: !!activeKbId,
-    refetchInterval: 5_000,  // poll while docs are indexing
+    refetchInterval: 5_000, // poll while docs are indexing
     placeholderData: [],
   })
 
   const docs: any[] = (docList as any[]) ?? []
 
-  // ── Mutations ────────────────────────────────────────────────
+  // Mutations
   const createKbMutation = useMutation({
     mutationFn: (name: string) =>
       api.post('/knowledge-bases', { name }),
@@ -85,105 +86,128 @@ export default function KnowledgeBasePage() {
   })
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/50 dark:border-slate-800/40 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Knowledge Base</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Train your bots with docs, URLs, and text
+          <h1 className="text-3.5xl font-black tracking-tight text-slate-850 dark:text-slate-100">Knowledge Base</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
+            Manage training sources (documents, links, URLs) used by your AI models.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateKb(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4" /> New Knowledge Base
-        </button>
+        {!showCreateKb && (
+          <button
+            onClick={() => setShowCreateKb(true)}
+            className="flex items-center gap-1.5 bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-indigo-500/10 transition-all duration-150"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New KB Category</span>
+          </button>
+        )}
       </div>
 
-      {/* Create KB form */}
+      {/* Create Category inline form block */}
       {showCreateKb && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex gap-3">
+        <div className="glass-panel rounded-2xl p-5 border border-indigo-150 dark:border-slate-800 dark:bg-slate-900/45">
+          <div className="flex items-center gap-2 mb-3.5">
+            <BookOpen className="w-4.5 h-4.5 text-indigo-550" />
+            <h2 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Create Knowledge Base Category</h2>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               value={kbName}
               onChange={(e) => setKbName(e.target.value)}
-              placeholder="e.g. Product Documentation"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. Sales Documentation"
+              className="flex-1 px-4 py-3 bg-white/50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
               autoFocus
             />
-            <button
-              onClick={() => createKbMutation.mutate(kbName)}
-              disabled={!kbName.trim() || createKbMutation.isPending}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-            >
-              {createKbMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-              Create
-            </button>
-            <button onClick={() => setShowCreateKb(false)} className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => createKbMutation.mutate(kbName)}
+                disabled={!kbName.trim() || createKbMutation.isPending}
+                className="flex items-center justify-center gap-2 bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white px-5 py-3 rounded-xl text-xs font-bold disabled:opacity-50 transition-all"
+              >
+                {createKbMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Create</span>
+              </button>
+              <button
+                onClick={() => setShowCreateKb(false)}
+                className="px-4 py-3 rounded-xl text-xs font-bold text-slate-550 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {loadingKbs ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
         </div>
       ) : kbs.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center py-16 text-gray-400">
-          <BookOpen className="w-10 h-10 mb-3 opacity-40" />
-          <p className="text-sm">No knowledge bases yet</p>
+        <div className="glass-panel rounded-2xl flex flex-col items-center py-20 text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-slate-800/40 dark:bg-slate-900/40">
+          <BookOpen className="w-12 h-12 mb-4 opacity-30 text-indigo-505" />
+          <p className="text-sm font-semibold">No knowledge categories available</p>
           <button
             onClick={() => setShowCreateKb(true)}
-            className="mt-3 text-sm text-blue-600 hover:underline"
+            className="mt-3.5 text-xs font-bold text-indigo-655 dark:text-indigo-400 hover:underline"
           >
-            Create your first one
+            Create your first category
           </button>
         </div>
       ) : (
-        <div className="flex gap-4">
-          {/* KB list (left) */}
-          <div className="w-52 flex-shrink-0 space-y-1">
-            {kbs.map((kb: any) => (
-              <button
-                key={kb.id}
-                onClick={() => setSelectedKbId(kb.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeKbId === kb.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">{kb.name}</span>
-                </div>
-              </button>
-            ))}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          
+          {/* KB list (left sidebar categories) */}
+          <div className="w-full lg:w-56 flex-shrink-0 space-y-1 bg-slate-55/40 dark:bg-slate-900/20 p-2 rounded-2xl border border-slate-200/40 dark:border-slate-800/30">
+            {kbs.map((kb: any) => {
+              const active = activeKbId === kb.id
+              return (
+                <button
+                  key={kb.id}
+                  onClick={() => setSelectedKbId(kb.id)}
+                  className={`w-full text-left px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+                    active
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
+                      : 'text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-slate-850 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <BookOpen className="w-4 h-4 flex-shrink-0 opacity-75" />
+                    <span className="truncate flex-1">{kb.name}</span>
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
-          {/* Documents (right) */}
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-              <span className="font-semibold text-gray-900">
-                {kbs.find((k: any) => k.id === activeKbId)?.name}
+          {/* Documents Table area (right) */}
+          <div className="flex-1 w-full glass-panel dark:bg-slate-900/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 overflow-hidden shadow-sm">
+            
+            {/* Toolbar header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/10">
+              <span className="font-bold text-slate-850 dark:text-slate-100 text-[15px]">
+                {kbs.find((k: any) => k.id === activeKbId)?.name || 'Documents'}
               </span>
-              <div className="flex gap-2">
+              
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 border border-gray-200"
+                  className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-605 dark:hover:text-indigo-400 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors"
                 >
-                  <Upload className="w-3.5 h-3.5" /> Upload PDF/DOCX
+                  <Upload className="w-4 h-4" />
+                  <span>Upload PDF/DOCX</span>
                 </button>
+                
                 <button
                   onClick={() => setShowAddUrl(true)}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 border border-gray-200"
+                  className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-605 dark:hover:text-indigo-400 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors"
                 >
-                  <Link2 className="w-3.5 h-3.5" /> Add URL
+                  <Link2 className="w-4 h-4" />
+                  <span>Add URL Link</span>
                 </button>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -200,76 +224,121 @@ export default function KnowledgeBasePage() {
               </div>
             </div>
 
-            {/* Add URL inline form */}
-            {showAddUrl && (
-              <div className="px-5 py-3 border-b border-gray-100 flex gap-2">
-                <input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://docs.example.com/page"
-                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  autoFocus
-                />
-                <button
-                  onClick={() => activeKbId && addUrlMutation.mutate({ kbId: activeKbId, url })}
-                  disabled={!url || addUrlMutation.isPending}
-                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm disabled:opacity-50"
+            {/* Add URL inline form block */}
+            <AnimatePresence>
+              {showAddUrl && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 flex flex-col sm:flex-row gap-3 overflow-hidden"
                 >
-                  {addUrlMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                  Add
-                </button>
-                <button onClick={() => { setShowAddUrl(false); setUrl('') }} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">
-                  Cancel
-                </button>
-              </div>
-            )}
+                  <input
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="e.g. https://docs.acme.com/help-articles"
+                    className="flex-1 px-4 py-2 bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-slate-805 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => activeKbId && addUrlMutation.mutate({ kbId: activeKbId, url })}
+                      disabled={!url.trim() || addUrlMutation.isPending}
+                      className="flex items-center justify-center gap-1.5 bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50 transition-colors"
+                    >
+                      {addUrlMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <span>Add URL</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowAddUrl(false); setUrl('') }}
+                      className="px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Document list */}
-            {loadingDocs ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-              </div>
-            ) : docs.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-gray-400">
-                <FileText className="w-8 h-8 mb-2 opacity-40" />
-                <p className="text-sm">No documents yet</p>
-                <p className="text-xs mt-1">Upload a PDF, DOCX, or add a URL above</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {docs.map((doc: any) => {
-                  const { icon: StatusIcon, color } = STATUS_ICONS[doc.status] ?? STATUS_ICONS.pending
+            {/* Documents List details */}
+            <div className="divide-y divide-slate-150/40 dark:divide-slate-800/60">
+              {loadingDocs ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
+              ) : docs.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-slate-400 dark:text-slate-500 bg-white/40 dark:bg-transparent">
+                  <FileText className="w-10 h-10 mb-3 opacity-30 text-indigo-505" />
+                  <p className="text-sm font-semibold">No training resources loaded</p>
+                  <p className="text-xs text-slate-450 dark:text-slate-550 mt-1">Upload files or input website links above to train the AI</p>
+                </div>
+              ) : (
+                docs.map((doc: any) => {
+                  const statusInfo = STATUS_ICONS[doc.status] || STATUS_ICONS.pending
+                  const StatusIcon = statusInfo.icon
                   return (
-                    <div key={doc.id} className="flex items-center gap-3 px-5 py-3">
-                      {doc.sourceType === 'url' ? (
-                        <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      ) : (
-                        <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{doc.name}</p>
-                        <p className="text-xs text-gray-400">
-                          {doc.status === 'indexed' ? `${doc.chunkCount} chunks` : doc.status}
-                          {doc.errorMessage && ` — ${doc.errorMessage.slice(0, 60)}`}
-                        </p>
+                    <div key={doc.id} className="flex items-center justify-between gap-4 px-6 py-4.5 bg-white/30 dark:bg-transparent hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-850 flex items-center justify-center border border-slate-150/50 dark:border-slate-800 flex-shrink-0">
+                          {doc.sourceType === 'url' ? (
+                            <Globe className="w-4.5 h-4.5 text-slate-400" />
+                          ) : (
+                            <FileText className="w-4.5 h-4.5 text-slate-450" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{doc.name}</p>
+                          <p className="text-[10px] text-slate-450 dark:text-slate-500 font-semibold mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="uppercase">{doc.sourceType}</span>
+                            {doc.status === 'indexed' && (
+                              <>
+                                <span>·</span>
+                                <span>{doc.chunkCount || 0} training chunks</span>
+                              </>
+                            )}
+                            {doc.errorMessage && (
+                              <>
+                                <span>·</span>
+                                <span className="text-red-500 font-medium flex items-center gap-0.5">
+                                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                                  <span>{doc.errorMessage.slice(0, 50)}</span>
+                                </span>
+                              </>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <StatusIcon className={`w-4 h-4 flex-shrink-0 ${color}`} />
-                      <button
-                        onClick={() => {
-                          if (activeKbId && confirm('Remove this document?')) {
-                            deleteDocMutation.mutate({ kbId: activeKbId, docId: doc.id })
-                          }
-                        }}
-                        className="p-1 text-gray-300 hover:text-red-400 rounded"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        {/* Status Label badge */}
+                        <div className="flex items-center gap-1.5">
+                          <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
+                          <span className="hidden sm:inline text-[10px] font-bold text-slate-405 dark:text-slate-500 uppercase tracking-wider">
+                            {statusInfo.label}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (activeKbId && confirm('Remove this training document?')) {
+                              deleteDocMutation.mutate({ kbId: activeKbId, docId: doc.id })
+                            }
+                          }}
+                          className="p-2 text-slate-350 hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-850"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   )
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
+
           </div>
+
         </div>
       )}
     </div>

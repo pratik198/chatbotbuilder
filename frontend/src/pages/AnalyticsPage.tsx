@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts'
 import { formatNumber, formatMs } from '@/lib/utils'
+import { MessageSquare, Zap, Clock, TrendingUp } from 'lucide-react'
 import api from '@/lib/api'
 
 const RANGES = [
@@ -35,22 +36,48 @@ export default function AnalyticsPage() {
   const ts: any[] = (timeseries as any[]) ?? []
   const s: any = summary ?? {}
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">Performance overview</p>
+  const statCards = [
+    { label: 'Conversations', value: formatNumber(s.totalConversations ?? 0), icon: MessageSquare, color: 'text-blue-650 dark:text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Messages Sent', value: formatNumber(s.totalMessages ?? 0), icon: TrendingUp, iconColor: 'text-emerald-500', color: 'text-emerald-650 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Leads Captured', value: formatNumber(s.totalLeads ?? 0), icon: Zap, iconColor: 'text-purple-500', color: 'text-purple-650 dark:text-purple-400', bg: 'bg-purple-500/10' },
+    { label: 'Avg Response', value: formatMs(s.avgResponseTimeMs ?? 0), icon: Clock, iconColor: 'text-orange-500', color: 'text-orange-655 dark:text-orange-400', bg: 'bg-orange-500/10' },
+  ]
+
+  // Custom tooltips
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-slate-800 p-3 rounded-xl shadow-xl">
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
+          {payload.map((p: any) => (
+            <p key={p.name} className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+              <span>{p.name}: {p.value}</span>
+            </p>
+          ))}
         </div>
-        <div className="flex gap-2">
+      )
+    }
+    return null
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/50 dark:border-slate-800/40 pb-5">
+        <div>
+          <h1 className="text-3.5xl font-black tracking-tight text-slate-850 dark:text-slate-100">Analytics</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Performance overview of your AI assistants</p>
+        </div>
+        <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200/40 dark:border-slate-800/30 self-start sm:self-auto">
           {RANGES.map((r) => (
             <button
               key={r.days}
               onClick={() => setDays(r.days)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                 days === r.days
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  ? 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-slate-105 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-450 hover:text-slate-805 dark:hover:text-slate-200'
               }`}
             >
               {r.label}
@@ -60,47 +87,69 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Conversations',  value: formatNumber(s.totalConversations ?? 0), color: 'text-blue-600' },
-          { label: 'Messages',       value: formatNumber(s.totalMessages ?? 0),       color: 'text-green-600' },
-          { label: 'Leads',          value: formatNumber(s.totalLeads ?? 0),           color: 'text-purple-600' },
-          { label: 'Avg Response',   value: formatMs(s.avgResponseTimeMs ?? 0),        color: 'text-orange-600' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm text-gray-500 mb-2">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {statCards.map((c) => {
+          const Icon = c.icon
+          return (
+            <div key={c.label} className="glass-panel rounded-2xl p-5 dark:bg-slate-900/40">
+              <div className="flex items-center gap-2 text-slate-400 dark:text-slate-550 mb-3">
+                <Icon className="w-4.5 h-4.5" />
+                <span className="text-xs font-semibold uppercase tracking-wider">{c.label}</span>
+              </div>
+              <p className={`text-2.5xl font-black tracking-tight ${c.color}`}>{c.value}</p>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Charts area */}
+      <div className="grid grid-cols-1 gap-6">
+        
+        {/* Conversations chart */}
+        <div className="glass-panel rounded-2xl p-6 dark:bg-slate-900/40">
+          <div className="mb-6">
+            <h2 className="font-bold text-slate-800 dark:text-slate-150 text-base">Conversations Over Time</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Total sessions processed in the selected range</p>
           </div>
-        ))}
-      </div>
+          <div className="w-100 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={ts} margin={{ left: -10, right: 10, top: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorConv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.08)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v.slice(5)} border-0 />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="conversations" stroke="#6366F1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorConv)" name="Conversations" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-      {/* Conversations chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-gray-900 mb-4">Conversations over time</h2>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={ts}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Line type="monotone" dataKey="conversations" stroke="#3b82f6" strokeWidth={2} dot={false} name="Conversations" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+        {/* Messages bar chart */}
+        <div className="glass-panel rounded-2xl p-6 dark:bg-slate-900/40">
+          <div className="mb-6">
+            <h2 className="font-bold text-slate-800 dark:text-slate-150 text-base">Messages by Day</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Message breakdown between user inputs and bot replies</p>
+          </div>
+          <div className="w-100 h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={ts} margin={{ left: -10, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.08)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v.slice(5)} />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="messagesUser" name="User messages" fill="#818CF8" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                <Bar dataKey="messagesBot" name="Bot responses" fill="#6366F1" radius={[4, 4, 0, 0]} maxBarSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-      {/* Messages bar chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-gray-900 mb-4">Messages by day</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={ts}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="messagesUser" name="User"   fill="#93c5fd" />
-            <Bar dataKey="messagesBot"  name="Bot"    fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
     </div>
   )

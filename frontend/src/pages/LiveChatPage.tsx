@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
-import { MessageSquare, Send, UserCheck, Clock } from 'lucide-react'
+import { MessageSquare, Send, UserCheck, Clock, Hash } from 'lucide-react'
 
 interface InboxConversation {
   id: string
@@ -16,11 +16,6 @@ interface ChatMessage {
   content: string
 }
 
-/**
- * Agent Live Chat Inbox.
- * Connects to the agent WebSocket (/ws/inbox) to receive real-time handoff notifications.
- * Agents can pick up conversations and reply as "agent".
- */
 export default function LiveChatPage() {
   const { accessToken, user } = useAuthStore()
   const wsRef = useRef<WebSocket | null>(null)
@@ -60,7 +55,6 @@ export default function LiveChatPage() {
 
   function handleServerMessage(msg: any) {
     if (msg.type === 'handoff_requested') {
-      // A visitor requested a human agent
       setInbox((prev) => {
         const exists = prev.find((c) => c.id === msg.conversationId)
         if (exists) return prev
@@ -77,7 +71,6 @@ export default function LiveChatPage() {
         ]
       })
     } else if (msg.type === 'visitor_message' && active?.id === msg.conversationId) {
-      // Visitor sent a new message in the active conversation
       setMessages((prev) => [...prev, { role: 'user', content: msg.content }])
     }
   }
@@ -88,7 +81,6 @@ export default function LiveChatPage() {
     setInbox((prev) => prev.map((c) =>
       c.id === conv.id ? { ...c, status: 'active' } : c
     ))
-    // Tell the server we accepted this conversation
     wsRef.current?.send(JSON.stringify({
       type:           'accept_handoff',
       conversationId: conv.id,
@@ -107,98 +99,109 @@ export default function LiveChatPage() {
     }))
   }
 
-  const waiting = inbox.filter((c) => c.status === 'waiting')
+
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-8rem)]">
-      {/* Inbox sidebar */}
-      <div className="w-72 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden flex-shrink-0">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <span className="font-semibold text-gray-900">Inbox</span>
-          <div className={`flex items-center gap-1.5 text-xs font-medium ${connected ? 'text-green-600' : 'text-gray-400'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-            {connected ? 'Online' : 'Connecting...'}
+    <div className="flex flex-col md:flex-row gap-5 h-[calc(100vh-9.5rem)] min-h-[480px]">
+      
+      {/* 1. Inbox sidebar queue */}
+      <div className="w-full md:w-72 bg-white dark:bg-[#1E293B]/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex flex-col overflow-hidden flex-shrink-0 shadow-sm">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/10 flex items-center justify-between">
+          <span className="font-bold text-slate-850 dark:text-slate-100 text-sm">Live Inbox</span>
+          <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-350'}`} />
+            <span>{connected ? 'Agent Online' : 'Connecting...'}</span>
           </div>
         </div>
 
-        {waiting.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-gray-400 py-10">
-            <Clock className="w-7 h-7 mb-2 opacity-40" />
-            <p className="text-sm">No pending chats</p>
-            <p className="text-xs mt-1 text-gray-300">Waiting for handoff requests...</p>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-            {inbox.map((conv) => (
-              <div
-                key={conv.id}
-                className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${active?.id === conv.id ? 'bg-blue-50' : ''}`}
-                onClick={() => conv.status === 'active' ? setActive(conv) : undefined}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900 truncate">
-                    {conv.sessionKey.slice(0, 12)}...
-                  </span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    conv.status === 'waiting'
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-green-100 text-green-600'
-                  }`}>
-                    {conv.status}
-                  </span>
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+          {inbox.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500 text-center px-5 py-12">
+              <Clock className="w-9 h-9 mb-3 opacity-20 text-indigo-505" />
+              <p className="text-xs font-bold">No active requests</p>
+              <p className="text-[10px] text-slate-455 dark:text-slate-550 mt-1 leading-relaxed">
+                Waiting for visitors to request human handoff...
+              </p>
+            </div>
+          ) : (
+            inbox.map((conv) => {
+              const isActive = active?.id === conv.id
+              return (
+                <div
+                  key={conv.id}
+                  className={`px-5 py-4 transition-colors cursor-pointer border-l-2 ${
+                    isActive 
+                      ? 'bg-indigo-50/20 dark:bg-indigo-500/5 border-indigo-650' 
+                      : 'border-transparent hover:bg-slate-50/50 dark:hover:bg-slate-900/10'
+                  }`}
+                  onClick={() => conv.status === 'active' ? setActive(conv) : undefined}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-150 truncate block max-w-[120px]">
+                      Session: {conv.sessionKey.slice(0, 10)}...
+                    </span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      conv.status === 'waiting'
+                        ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30'
+                        : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30'
+                    }`}>
+                      {conv.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate leading-relaxed">{conv.lastMessage}</p>
+                  
+                  {conv.status === 'waiting' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); acceptConversation(conv) }}
+                      className="mt-3 w-full flex items-center justify-center gap-1.5 bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-md shadow-indigo-500/5 transition-colors"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Accept Handoff</span>
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400 truncate">{conv.lastMessage}</p>
-                {conv.status === 'waiting' && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); acceptConversation(conv) }}
-                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700"
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    Accept
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              )
+            })
+          )}
+        </div>
       </div>
 
-      {/* Chat panel */}
-      <div className="flex-1 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden">
+      {/* 2. Real-time chat messaging panel */}
+      <div className="flex-1 bg-white dark:bg-[#1E293B]/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex flex-col overflow-hidden shadow-sm">
         {!active ? (
-          <div className="flex items-center justify-center flex-1 text-gray-400">
-            <div className="text-center">
-              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Accept a conversation to start chatting</p>
-            </div>
+          <div className="flex flex-col items-center justify-center flex-1 text-slate-400 dark:text-slate-500 p-6 text-center">
+            <MessageSquare className="w-10 h-10 mb-3 opacity-20 text-indigo-505" />
+            <p className="text-sm font-semibold">Live agent console</p>
+            <p className="text-xs text-slate-450 dark:text-slate-550 mt-1">Accept a pending conversation from the sidebar queue to start real-time human chat support.</p>
           </div>
         ) : (
           <>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm font-medium text-gray-900">
-                Session {active.sessionKey.slice(0, 16)}
-              </span>
-              <span className="text-xs text-gray-400 ml-auto">{active.botName}</span>
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center gap-2.5 bg-slate-50/50 dark:bg-slate-900/10 flex-shrink-0">
+              <Hash className="w-4 h-4 text-slate-400" />
+              <span className="text-xs text-slate-500 dark:text-slate-405">Session ID:</span>
+              <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate flex-1">{active.sessionKey}</span>
+              <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full text-slate-505 dark:text-slate-400 font-bold uppercase tracking-wider">{active.botName}</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {/* Chat timeline message bubbles */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 dark:bg-slate-950/5">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-start' : msg.role === 'agent' ? 'justify-end' : 'justify-center'}`}>
                   {msg.role === 'system' ? (
-                    <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-850/60 px-3.5 py-1 rounded-full uppercase tracking-wider">
                       {msg.content}
                     </span>
                   ) : (
-                    <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${
+                    <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-xs leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-gray-100 text-gray-800 rounded-bl-sm'
-                        : 'bg-blue-600 text-white rounded-br-sm'
+                        ? 'bg-white dark:bg-slate-900 text-slate-805 dark:text-slate-205 border border-slate-200/50 dark:border-slate-800/80 rounded-bl-sm shadow-sm'
+                        : 'bg-indigo-650 text-white rounded-br-sm shadow-sm'
                     }`}>
                       {msg.role === 'agent' && (
-                        <p className="text-xs opacity-70 mb-0.5">You</p>
+                        <p className="text-[9px] uppercase tracking-wider opacity-60 font-bold mb-1">Agent (You)</p>
                       )}
-                      {msg.content}
+                      <p>{msg.content}</p>
                     </div>
                   )}
                 </div>
@@ -206,18 +209,19 @@ export default function LiveChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-gray-100 p-4 flex gap-2">
+            {/* Input bar */}
+            <div className="border-t border-slate-105 dark:border-slate-800 p-4 bg-white dark:bg-[#1E293B]/20 flex gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
-                placeholder="Type a reply..."
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Type a support reply..."
+                className="flex-1 px-4 py-3 bg-slate-50/50 dark:bg-slate-950/40 border border-slate-205 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-550 dark:text-slate-100"
               />
               <button
                 onClick={sendReply}
                 disabled={!input.trim()}
-                className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 disabled:opacity-40"
+                className="w-10 h-10 bg-indigo-600 hover:bg-indigo-750 text-white rounded-xl flex items-center justify-center disabled:opacity-40 transition-colors shadow-md flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -225,6 +229,7 @@ export default function LiveChatPage() {
           </>
         )}
       </div>
+
     </div>
   )
 }

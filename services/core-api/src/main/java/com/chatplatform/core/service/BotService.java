@@ -22,7 +22,7 @@ public class BotService {
 
     private final BotRepository botRepo;
 
-    private static final int MAX_BOTS_FREE_PLAN = 3;
+    private static final int MAX_BOTS_FREE_PLAN = 10;
 
     public Page<Bot> listBots(UUID tenantId, Pageable pageable) {
         return botRepo.findByTenantId(tenantId, pageable);
