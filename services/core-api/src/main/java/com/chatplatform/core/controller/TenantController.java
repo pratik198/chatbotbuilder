@@ -48,7 +48,7 @@ public class TenantController {
      * Update workspace name.
      */
     @PutMapping("/me")
-    @PreAuthorize("hasAnyRole('tenant:owner', 'tenant:admin')")
+    @PreAuthorize("hasAnyRole('owner', 'admin')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateTenant(
             @RequestBody Map<String, String> body) {
 

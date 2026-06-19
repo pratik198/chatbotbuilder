@@ -138,7 +138,11 @@ public class PublicChatController {
                 // Publish analytics event
                 eventPublisher.publishMessageSent(conv, assistantMsg);
 
-            } catch (IOException e) {
+            } catch (Exception e) {
+                try {
+                    emitter.send(SseEmitter.event()
+                        .data("{\"type\":\"error\",\"message\":\"Server error: " + e.getMessage().replace("\"","'") + "\"}"));
+                } catch (IOException ignored) {}
                 emitter.completeWithError(e);
             }
         });
