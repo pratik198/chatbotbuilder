@@ -236,6 +236,8 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: chatplatform
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       APP_ENV: development
     ports:
@@ -243,6 +245,7 @@ services:
     depends_on:
       - postgres
       - rabbitmq
+      - redis
     restart: unless-stopped
 
   # ── Backend: admin-service ───────────────────────────────────

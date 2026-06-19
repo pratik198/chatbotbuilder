@@ -49,7 +49,7 @@ public class RagService {
                     .setScoreThreshold(scoreThreshold)
                     .setWithPayload(WithPayloadSelector.newBuilder().setEnable(true).build())
                     .build()
-            ).get().getResultList();
+            ).get();
 
             return results.stream().map(this::toChunk).toList();
 

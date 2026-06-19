@@ -27,20 +27,6 @@ spring:
       password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 2000ms
 
-  # ── Spring AI — Ollama ────────────────────────────────────────
-  ai:
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      chat:
-        # Default model — overridden per-request from bot config
-        options:
-          model: deepseek-v3
-          temperature: 0.7
-          num-predict: 2048   # max output tokens
-      embedding:
-        options:
-          model: nomic-embed-text
-
 server:
   port: 8082
 
@@ -55,15 +41,17 @@ management:
 
 # ── Qdrant ────────────────────────────────────────────────────────
 app:
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+    embedding-model: nomic-embed-text
   qdrant:
     host: ${QDRANT_HOST:localhost}
-    port: ${QDRANT_PORT:6334}   # gRPC port
+    port: ${QDRANT_PORT:6334}
     use-tls: false
   rag:
-    top-k: 5              # how many chunks to retrieve per query
-    score-threshold: 0.65 # minimum similarity score (0-1)
+    top-k: 5
+    score-threshold: 0.65
 
 logging:
   level:
     com.chatplatform: DEBUG
-    org.springframework.ai: INFO

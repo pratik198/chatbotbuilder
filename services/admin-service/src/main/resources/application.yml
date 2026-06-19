@@ -19,9 +19,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+    enabled: false    # core-api owns all migrations
 
   # JWT decoder configured in SecurityConfig using shared secret
 
