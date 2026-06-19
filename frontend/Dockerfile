@@ -9,7 +9,7 @@ WORKDIR /build
 COPY frontend/public/widget.js ./frontend/public/widget.js
 
 # Frontend: install deps then build
-COPY frontend/package*.json ./frontend/
+COPY frontend/package.json ./frontend/
 RUN cd frontend && npm install --no-audit --no-fund
 
 COPY frontend ./frontend
