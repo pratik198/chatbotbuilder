@@ -1,25 +1,19 @@
 # Build context is the project root (set in docker-compose.yml).
-# This lets us access both widget/ and frontend/ in one build.
 
 # ── Stage 1: Build ────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /build
 
-# Widget: install deps then build
-# vite.config.js outputs to ../frontend/public/widget.js
-COPY widget/package*.json ./widget/
-RUN cd widget && npm install --no-audit --no-fund
-
-COPY widget ./widget
-RUN mkdir -p frontend/public && cd widget && npm run build
-# Output: /build/frontend/public/widget.js
+# widget.js is pre-built on host (widget/ has no internet in Docker build).
+# Copy the already-built artifact directly.
+COPY frontend/public/widget.js ./frontend/public/widget.js
 
 # Frontend: install deps then build
 COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm ci --no-audit --no-fund
 
 COPY frontend ./frontend
-# widget.js already at frontend/public/widget.js from the step above
+# widget.js is already in frontend/public/ from the COPY above
 RUN cd frontend && npm run build
 # Output: /build/frontend/dist
 
