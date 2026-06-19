@@ -29,6 +29,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Security (permit-all config — network policy enforces internal-only) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Database (read bot config + KB links from shared DB) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
