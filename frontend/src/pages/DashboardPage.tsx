@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { MessageSquare, Bot, TrendingUp, Zap, Clock } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { MessageSquare, Bot, TrendingUp, Zap, Clock, ChevronRight } from 'lucide-react'
 import { formatNumber, formatMs } from '@/lib/utils'
 import api from '@/lib/api'
 
@@ -10,22 +11,53 @@ interface Summary {
   avgResponseTimeMs: number
 }
 
-function StatCard({ label, value, icon: Icon, color }: {
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 15 } }
+}
+
+const listContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const listItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { type: "spring" as const, stiffness: 120, damping: 18 } }
+}
+
+function StatCard({ label, value, icon: Icon, color, glowClass }: {
   label: string
   value: string
   icon: React.ElementType
   color: string
+  glowClass: string
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-500">{label}</span>
-        <div className={`w-9 h-9 ${color} rounded-lg flex items-center justify-center`}>
-          <Icon className="w-4 h-4 text-white" />
+    <motion.div
+      variants={cardVariants}
+      whileHover={{ y: -5, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`glass-panel ${glowClass} rounded-2xl p-6 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm font-semibold text-slate-500/90">{label}</span>
+        <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100`}>
+          <Icon className="w-5 h-5 text-white fill-white/10" />
         </div>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-    </div>
+      <div>
+        <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{value}</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Updated just now</p>
+      </div>
+      {/* Decorative background glow inside the card */}
+      <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+    </motion.div>
   )
 }
 
@@ -43,74 +75,116 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-1">Last 30 days</p>
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: {
+          transition: {
+            staggerChildren: 0.08
+          }
+        }
+      }}
+      className="space-y-8"
+    >
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 via-slate-800 to-indigo-950 tracking-tight">
+            Overview
+          </h1>
+          <p className="text-slate-500 text-sm mt-1.5 font-medium">Metrics for the last 30 days</p>
+        </div>
+        <div className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100/50">
+          Live Sync
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           label="Conversations"
           value={isLoading ? '...' : formatNumber(summary!.totalConversations)}
           icon={MessageSquare}
-          color="bg-blue-500"
+          color="bg-gradient-to-tr from-blue-600 to-indigo-500"
+          glowClass="glow-primary"
         />
         <StatCard
           label="Messages"
           value={isLoading ? '...' : formatNumber(summary!.totalMessages)}
           icon={TrendingUp}
-          color="bg-green-500"
+          color="bg-gradient-to-tr from-emerald-500 to-teal-400"
+          glowClass="glow-green"
         />
         <StatCard
           label="Leads Captured"
           value={isLoading ? '...' : formatNumber(summary!.totalLeads)}
           icon={Zap}
-          color="bg-purple-500"
+          color="bg-gradient-to-tr from-violet-600 to-purple-500"
+          glowClass="glow-purple"
         />
         <StatCard
-          label="Avg Response"
+          label="Avg Response Time"
           value={isLoading ? '...' : formatMs(summary!.avgResponseTimeMs)}
           icon={Clock}
-          color="bg-orange-500"
+          color="bg-gradient-to-tr from-orange-500 to-amber-400"
+          glowClass="glow-orange"
         />
       </div>
 
       {/* Bots list */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Your Bots</h2>
-          <a href="/bots" className="text-sm text-blue-600 hover:underline">View all</a>
+      <motion.div 
+        variants={cardVariants}
+        className="glass-panel rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h2 className="font-bold text-slate-800 text-base">Your Active Bots</h2>
+          <a href="/bots" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group transition-colors">
+            View all bots
+            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </a>
         </div>
-        <div className="divide-y divide-gray-100">
+        <motion.div 
+          variants={listContainerVariants}
+          className="divide-y divide-slate-100"
+        >
           {(bots as any[]).length === 0 ? (
-            <div className="px-5 py-8 text-center text-gray-400">
-              <Bot className="w-8 h-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No bots yet. <a href="/bots" className="text-blue-600 hover:underline">Create your first bot</a></p>
+            <div className="px-6 py-12 text-center text-slate-400 bg-white/50">
+              <Bot className="w-12 h-12 mx-auto mb-3 opacity-30 text-indigo-500" />
+              <p className="text-sm font-medium">No bots available yet.</p>
+              <a href="/bots" className="text-xs font-semibold text-indigo-600 hover:underline mt-1.5 block">Create your first bot</a>
             </div>
           ) : (
             (bots as any[]).slice(0, 5).map((bot: any) => (
-              <div key={bot.id} className="flex items-center justify-between px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-blue-600" />
+              <motion.div 
+                key={bot.id} 
+                variants={listItemVariants}
+                whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.6)", x: 4 }}
+                className="flex items-center justify-between px-6 py-4 transition-colors bg-white/50"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100/50">
+                    <Bot className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{bot.name}</p>
-                    <p className="text-xs text-gray-400">{bot.modelName}</p>
+                    <p className="text-sm font-semibold text-slate-900">{bot.name}</p>
+                    <p className="text-xs text-slate-400 font-medium">{bot.modelName}</p>
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  bot.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {bot.status}
-                </span>
-              </div>
+                <div className="flex items-center gap-4">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                    bot.status === 'active' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100/50' 
+                      : 'bg-slate-100 text-slate-500 border border-slate-200/50'
+                  }`}>
+                    {bot.status}
+                  </span>
+                </div>
+              </motion.div>
             ))
           )}
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   )
 }
+

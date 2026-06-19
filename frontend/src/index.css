@@ -49,3 +49,48 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@layer utilities {
+  .bg-grid-pattern {
+    background-size: 32px 32px;
+    background-image: 
+      linear-gradient(to right, rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  }
+  
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+  
+  .glow-primary {
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.08), 0 0 0 1px rgba(59, 130, 246, 0.05);
+  }
+  
+  .glow-green {
+    box-shadow: 0 8px 30px rgba(34, 197, 94, 0.08), 0 0 0 1px rgba(34, 197, 94, 0.05);
+  }
+  
+  .glow-purple {
+    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.08), 0 0 0 1px rgba(168, 85, 247, 0.05);
+  }
+
+  .glow-orange {
+    box-shadow: 0 8px 30px rgba(249, 115, 22, 0.08), 0 0 0 1px rgba(249, 115, 22, 0.05);
+  }
+  
+  .animate-mesh-gradient {
+    background: linear-gradient(-45deg, #e0e7ff, #f3e8ff, #faf5ff, #f8fafc);
+    background-size: 400% 400%;
+    animation: meshMovement 15s ease infinite;
+  }
+  
+  @keyframes meshMovement {
+    0% { background-position: 0% 50% }
+    50% { background-position: 100% 50% }
+    100% { background-position: 0% 50% }
+  }
+}
+
