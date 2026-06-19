@@ -3,12 +3,12 @@ package com.chatplatform.core.service;
 import com.chatplatform.core.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
@@ -29,7 +29,7 @@ public class JwtService {
             @Value("${app.jwt.access-expiry-minutes:60}") long accessMinutes,
             @Value("${app.jwt.refresh-expiry-days:30}") long refreshDays) {
 
-        this.signingKey     = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.signingKey     = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         this.accessExpiryMs = accessMinutes * 60 * 1_000;
         this.refreshExpiryMs = refreshDays * 24 * 60 * 60 * 1_000;
     }
