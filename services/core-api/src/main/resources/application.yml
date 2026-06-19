@@ -43,14 +43,6 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:changeme}
     virtual-host: /
 
-  # ── Security (our own HS256 JWT — no external service needed) ──
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          # Decoder is configured programmatically in SecurityConfig using JwtService
-          # This property is intentionally left absent (no issuer-uri needed)
-
 # ── Server ───────────────────────────────────────────────────────
 server:
   port: 8080
