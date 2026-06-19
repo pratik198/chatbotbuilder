@@ -48,10 +48,10 @@ public class DocumentService {
 
         // Validate
         if ("url".equals(req.getSourceType()) && isBlank(req.getSourceUrl())) {
-            throw new BusinessException("sourceUrl is required when sourceType is 'url'", HttpStatus.BAD_REQUEST);
+            throw new BusinessException("INVALID_REQUEST", "sourceUrl is required when sourceType is 'url'");
         }
         if ("text".equals(req.getSourceType()) && isBlank(req.getRawText())) {
-            throw new BusinessException("rawText is required when sourceType is 'text'", HttpStatus.BAD_REQUEST);
+            throw new BusinessException("INVALID_REQUEST", "rawText is required when sourceType is 'text'");
         }
 
         // Save document record
@@ -93,7 +93,7 @@ public class DocumentService {
                     .build());
         } catch (Exception e) {
             log.error("MinIO upload failed: {}", e.getMessage());
-            throw new BusinessException("File upload failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new BusinessException("UPLOAD_FAILED", "File upload failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         // Save document record
