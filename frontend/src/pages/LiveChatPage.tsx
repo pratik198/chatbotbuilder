@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
-import { MessageSquare, Send, UserCheck, Clock, Loader2 } from 'lucide-react'
+import { MessageSquare, Send, UserCheck, Clock } from 'lucide-react'
 
 interface InboxConversation {
   id: string

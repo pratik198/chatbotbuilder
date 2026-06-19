@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { MessageSquare, Bot, BookOpen, TrendingUp, Zap, Clock } from 'lucide-react'
+import { MessageSquare, Bot, TrendingUp, Zap, Clock } from 'lucide-react'
 import { formatNumber, formatMs } from '@/lib/utils'
 import api from '@/lib/api'
 
