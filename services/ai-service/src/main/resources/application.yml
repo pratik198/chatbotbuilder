@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: ai-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatplatform}
+    username: ${SPRING_DATASOURCE_USERNAME:chatplatform}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 5   # ai-service is mostly CPU-bound, fewer DB connections needed
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: false    # core-api owns all migrations
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  # ── Spring AI — Ollama ────────────────────────────────────────
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        # Default model — overridden per-request from bot config
+        options:
+          model: deepseek-v3
+          temperature: 0.7
+          num-predict: 2048   # max output tokens
+      embedding:
+        options:
+          model: nomic-embed-text
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ── Qdrant ────────────────────────────────────────────────────────
+app:
+  qdrant:
+    host: ${QDRANT_HOST:localhost}
+    port: ${QDRANT_PORT:6334}   # gRPC port
+    use-tls: false
+  rag:
+    top-k: 5              # how many chunks to retrieve per query
+    score-threshold: 0.65 # minimum similarity score (0-1)
+
+logging:
+  level:
+    com.chatplatform: DEBUG
+    org.springframework.ai: INFO
