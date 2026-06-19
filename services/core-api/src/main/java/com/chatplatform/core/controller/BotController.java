@@ -12,16 +12,23 @@ import com.chatplatform.core.service.BotService;
 import com.chatplatform.core.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +39,10 @@ public class BotController {
 
     private final BotService botService;
     private final UserService userService;
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Value("${app.ai-service-url:http://ai-service:8082}")
+    private String aiServiceUrl;
 
     /**
      * GET /api/v1/bots?page=0&size=20
@@ -130,5 +141,56 @@ public class BotController {
                 "embed_token", bot.getEmbedToken(),
                 "snippet",     snippet
         )));
+    }
+
+    /**
+     * POST /api/v1/bots/{id}/test-chat
+     * Dashboard-only test endpoint — allows chatting with draft bots.
+     */
+    @PostMapping("/{id}/test-chat")
+    @PreAuthorize("hasAnyRole('owner', 'admin', 'member')")
+    public ResponseEntity<ApiResponse<Map<String, String>>> testChat(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+
+        UUID tenantId = TenantContext.getTenantId();
+        Bot bot = botService.getBotOrThrow(id, tenantId);
+
+        String userMessage = body.get("message");
+        if (userMessage == null || userMessage.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("INVALID_REQUEST", "message is required"));
+        }
+
+        Map<String, Object> aiRequest = new HashMap<>();
+        aiRequest.put("botId",            bot.getId());
+        aiRequest.put("tenantId",         bot.getTenantId());
+        aiRequest.put("modelProvider",    bot.getModelProvider() != null ? bot.getModelProvider() : "ollama");
+        aiRequest.put("modelName",        bot.getModelName() != null ? bot.getModelName() : "deepseek-v3");
+        aiRequest.put("temperature",      bot.getTemperature() != null ? bot.getTemperature() : 0.7);
+        aiRequest.put("maxTokens",        bot.getMaxTokens() != null ? bot.getMaxTokens() : 2048);
+        aiRequest.put("systemPrompt",     bot.getSystemPrompt() != null ? bot.getSystemPrompt() : "");
+        aiRequest.put("ragEnabled",       bot.isRagEnabled());
+        aiRequest.put("knowledgeBaseIds", List.of());
+        aiRequest.put("history",          List.of());
+        aiRequest.put("userMessage",      userMessage);
+
+        try {
+            ResponseEntity<Map<String, Object>> resp = restTemplate.exchange(
+                aiServiceUrl + "/ai/chat",
+                HttpMethod.POST,
+                new HttpEntity<>(aiRequest),
+                new ParameterizedTypeReference<>() {}
+            );
+            Map<String, Object> respBody = resp.getBody();
+            String content = respBody != null ? (String) respBody.get("content") : "";
+            if (content == null || content.isBlank()) {
+                content = "No response from AI. Make sure the model is loaded in Ollama.";
+            }
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("content", content)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.ok(
+                Map.of("content", "AI service error: " + e.getMessage())));
+        }
     }
 }

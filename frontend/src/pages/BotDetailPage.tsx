@@ -100,55 +100,21 @@ export default function BotDetailPage() {
       widgetConfig: { ...(f.widgetConfig ?? {}), [key]: value },
     }))
 
-  // Send test message via SSE endpoint
+  // Send test message via authenticated test-chat endpoint (works for draft bots)
   const sendTestMessage = async () => {
     const text = testInput.trim()
-    if (!text || !bot?.embedToken || testLoading) return
+    if (!text || !bot?.id || testLoading) return
 
     setTestInput('')
     setTestMsgs((m) => [...m, { role: 'user', text }])
     setTestLoading(true)
 
     try {
-      const resp = await fetch('/public/v1/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          embedToken: bot.embedToken,
-          sessionKey: testSessionKey.current,
-          message: text,
-        }),
-      })
-
-      if (!resp.ok || !resp.body) throw new Error('request failed')
-
-      const reader = resp.body.getReader()
-      const dec = new TextDecoder()
-      let buffer = ''
-      let fullContent = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += dec.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue
-          const raw = line.slice(5).trim()
-          try {
-            const evt = JSON.parse(raw)
-            if (evt.type === 'done' && evt.content) {
-              fullContent = evt.content
-            }
-          } catch {}
-        }
-      }
-
-      setTestMsgs((m) => [...m, { role: 'assistant', text: fullContent || '...' }])
+      const resp = await api.post(`/bots/${bot.id}/test-chat`, { message: text })
+      const content = resp.data?.data?.content || 'No response'
+      setTestMsgs((m) => [...m, { role: 'assistant', text: content }])
     } catch {
-      setTestMsgs((m) => [...m, { role: 'assistant', text: 'Error: could not reach the bot. Is it published?' }])
+      setTestMsgs((m) => [...m, { role: 'assistant', text: 'Error: could not reach the AI service.' }])
     } finally {
       setTestLoading(false)
     }

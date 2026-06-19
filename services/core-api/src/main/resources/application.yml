@@ -69,6 +69,7 @@ app:
     secret: ${JWT_SECRET:dev-secret-key-change-this-in-production-must-be-32-chars-minimum}
     access-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:60}
     refresh-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:30}
+  ai-service-url: ${AI_SERVICE_URL:http://localhost:8082}
   minio:
     url: ${MINIO_URL:http://localhost:9000}
     access-key: ${MINIO_ACCESS_KEY:minioadmin}

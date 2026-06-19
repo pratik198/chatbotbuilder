@@ -129,6 +129,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       APP_ENV: development
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      AI_SERVICE_URL: http://ai-service:8082
     ports:
       - "8080:8080"
     depends_on:
