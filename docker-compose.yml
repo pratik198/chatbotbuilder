@@ -128,6 +128,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8080:8080"
     depends_on:
@@ -157,6 +158,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       AI_SERVICE_URL: http://ai-service:8082
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8081:8081"
     depends_on:
@@ -183,6 +185,7 @@ services:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6334
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8082:8082"
     depends_on:
@@ -213,6 +216,7 @@ services:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6334
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8083:8083"
     depends_on:
@@ -240,6 +244,7 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8084:8084"
     depends_on:
@@ -260,6 +265,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       APP_ENV: development
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
     ports:
       - "8085:8085"
     depends_on:
