@@ -71,9 +71,7 @@ public class VectorStoreService {
         }
 
         try {
-            qdrant.upsertAsync(collectionName,
-                    points, true  // wait=true: block until indexed
-            ).get();
+            qdrant.upsertAsync(collectionName, points).get();
             log.info("Upserted {} chunks for doc {} into collection {}", chunks.size(), docId, collectionName);
         } catch (Exception e) {
             log.error("Failed to upsert chunks into Qdrant: {}", e.getMessage());
@@ -99,9 +97,7 @@ public class VectorStoreService {
                         .build())
                     .build();
 
-            qdrant.deleteAsync(collectionName,
-                    PointsSelector.newBuilder().setFilter(filter).build(),
-                    true).get();
+            qdrant.deleteAsync(collectionName, filter).get();
 
             log.info("Deleted vectors for doc {} from {}", docId, collectionName);
         } catch (Exception e) {

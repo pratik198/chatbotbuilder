@@ -56,6 +56,12 @@
             <artifactId>client</artifactId>
             <version>1.9.1</version>
         </dependency>
+        <!-- protobuf-java must be explicit — Qdrant client needs it on compile classpath -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.25.3</version>
+        </dependency>
 
         <!-- MinIO — stores uploaded files -->
         <dependency>

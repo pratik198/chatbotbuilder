@@ -66,7 +66,7 @@ public class DocumentController {
                 .map(doc -> {
                     vectorStore.deleteByDocId(tenantId, id);
                     docRepo.delete(doc);
-                    return ResponseEntity.<Void>ok().build();
+                    return ResponseEntity.noContent().<Void>build();
                 })
                 .orElse(ResponseEntity.<Void>notFound().build());
     }
