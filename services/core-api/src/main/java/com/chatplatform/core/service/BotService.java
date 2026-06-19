@@ -84,10 +84,6 @@ public class BotService {
     @Transactional
     public Bot publishBot(UUID botId, UUID tenantId) {
         Bot bot = getBotOrThrow(botId, tenantId);
-        if (bot.getSystemPrompt() == null || bot.getSystemPrompt().isBlank()) {
-            throw new BusinessException("MISSING_SYSTEM_PROMPT",
-                    "Bot must have a system prompt before publishing");
-        }
         bot.setStatus("active");
         return botRepo.save(bot);
     }

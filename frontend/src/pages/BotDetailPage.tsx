@@ -36,7 +36,7 @@ export default function BotDetailPage() {
   const [testMsgs, setTestMsgs]       = useState<ChatMsg[]>([])
   const [testInput, setTestInput]     = useState('')
   const [testLoading, setTestLoading] = useState(false)
-  const testSessionKey = useRef('test-' + Math.random().toString(36).slice(2))
+
   const testEndRef = useRef<HTMLDivElement>(null)
 
   const { data: bot, isLoading } = useQuery({
