@@ -62,7 +62,7 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter conv = new JwtGrantedAuthoritiesConverter();
-        conv.setAuthoritiesClaimName("realm_access.roles");
+        conv.setAuthoritiesClaimName("roles");
         conv.setAuthorityPrefix("ROLE_");
         JwtAuthenticationConverter jwtConv = new JwtAuthenticationConverter();
         jwtConv.setJwtGrantedAuthoritiesConverter(conv);

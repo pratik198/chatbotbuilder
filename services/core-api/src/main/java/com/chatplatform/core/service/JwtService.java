@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -41,8 +40,7 @@ public class JwtService {
                 .claim("email", user.getEmail())
                 .claim("name", user.getFullName())
                 .claim("tenant_id", tenantId != null ? tenantId.toString() : null)
-                // realm_access.roles matches what existing SecurityConfigs expect
-                .claim("realm_access", Map.of("roles", roles))
+                .claim("roles", roles)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(accessExpiryMs)))
                 .signWith(signingKey)

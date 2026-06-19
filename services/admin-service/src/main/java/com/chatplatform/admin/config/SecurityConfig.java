@@ -17,7 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
+
 import java.util.stream.Collectors;
 
 @Configuration
@@ -60,12 +60,9 @@ public class SecurityConfig {
     private JwtAuthenticationConverter jwtConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-            if (realmAccess == null) return List.of();
-            Object roles = realmAccess.get("roles");
-            if (!(roles instanceof List<?> roleList)) return List.of();
-            return roleList.stream()
-                    .filter(r -> r instanceof String)
+            List<String> roles = jwt.getClaimAsStringList("roles");
+            if (roles == null) return List.of();
+            return roles.stream()
                     .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                     .collect(Collectors.toList());
         });

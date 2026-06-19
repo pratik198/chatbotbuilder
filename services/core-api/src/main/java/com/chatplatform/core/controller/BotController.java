@@ -19,7 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -63,10 +63,10 @@ public class BotController {
      * POST /api/v1/bots
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('tenant:owner', 'tenant:admin', 'tenant:member')")
+    @PreAuthorize("hasAnyRole('owner', 'admin', 'member')")
     public ResponseEntity<ApiResponse<BotDto>> createBot(
             @Valid @RequestBody CreateBotRequest req,
-            @AuthenticationPrincipal JwtAuthenticationToken jwt) {
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID tenantId = TenantContext.getTenantId();
         User user = userService.getCurrentUser(jwt);
@@ -103,7 +103,7 @@ public class BotController {
      * Soft-deletes (archives) the bot.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('tenant:owner', 'tenant:admin')")
+    @PreAuthorize("hasAnyRole('owner', 'admin')")
     public ResponseEntity<ApiResponse<Void>> deleteBot(@PathVariable UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         botService.deleteBot(id, tenantId);

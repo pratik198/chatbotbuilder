@@ -7,7 +7,7 @@ import com.chatplatform.core.exception.ResourceNotFoundException;
 import com.chatplatform.core.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,8 +55,8 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
     }
 
-    public User getCurrentUser(JwtAuthenticationToken jwt) {
-        UUID userId = UUID.fromString(jwt.getToken().getSubject());
+    public User getCurrentUser(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
         return getById(userId);
     }
 
