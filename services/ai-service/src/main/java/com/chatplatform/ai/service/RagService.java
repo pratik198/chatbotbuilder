@@ -61,7 +61,9 @@ public class RagService {
 
     private Filter buildKbFilter(List<UUID> kbIds) {
         Match match = Match.newBuilder()
-                .addAllKeywords(kbIds.stream().map(UUID::toString).toList())
+                .setKeywords(RepeatedStrings.newBuilder()
+                        .addAllStrings(kbIds.stream().map(UUID::toString).toList())
+                        .build())
                 .build();
         FieldCondition condition = FieldCondition.newBuilder()
                 .setKey("kb_id").setMatch(match).build();
