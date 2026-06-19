@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: chat-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatplatform}
+    username: ${SPRING_DATASOURCE_USERNAME:chatplatform}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Flyway OFF — core-api owns all migrations
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${SPRING_RABBITMQ_USERNAME:chatplatform}
+    password: ${SPRING_RABBITMQ_PASSWORD:changeme}
+
+  # JWT decoder configured in SecurityConfig using shared secret
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-change-this-in-production-must-be-32-chars-minimum}
+  ai-service-url: ${AI_SERVICE_URL:http://localhost:8082}
+  # How many recent messages to include as context in each AI call
+  context-window-messages: 10
+  # Visitor sessions expire after 30 minutes of inactivity
+  session-ttl-minutes: 30
+
+logging:
+  level:
+    com.chatplatform: DEBUG
+    org.springframework.web.socket: INFO
