@@ -55,7 +55,7 @@
         <dependency>
             <groupId>io.qdrant</groupId>
             <artifactId>client</artifactId>
-            <version>1.9.2</version>
+            <version>1.9.1</version>
         </dependency>
 
         <!-- Metrics -->
