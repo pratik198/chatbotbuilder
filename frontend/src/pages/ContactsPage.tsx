@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Search, Plus, Loader2, ChevronDown } from 'lucide-react'
+import { Users, Search, Loader2, ChevronDown, Clock, Plus } from 'lucide-react'
 import api from '@/lib/api'
+
+const ACTIVITY_COLORS: Record<string, string> = {
+  note:        'bg-blue-100 text-blue-700',
+  call:        'bg-green-100 text-green-700',
+  email:       'bg-purple-100 text-purple-700',
+  chat:        'bg-indigo-100 text-indigo-700',
+  stage_change:'bg-yellow-100 text-yellow-700',
+}
 
 const STAGES = ['new', 'qualified', 'converted', 'lost']
 
@@ -16,6 +24,8 @@ export default function ContactsPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [selected, setSelected] = useState<any>(null)
+  const [activityTab, setActivityTab] = useState<'details' | 'activity'>('details')
+  const [newNote, setNewNote] = useState('')
   const qc = useQueryClient()
 
   const { data: stats } = useQuery({
@@ -50,6 +60,20 @@ export default function ContactsPage() {
       qc.invalidateQueries({ queryKey: ['contacts'] })
       qc.invalidateQueries({ queryKey: ['contact-stats'] })
       setSelected(null)
+    },
+  })
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['contact-activities', selected?.id],
+    queryFn: () => api.get(`/contacts/${selected.id}/activities`).then((r) => r.data.data?.items ?? []),
+    enabled: !!selected?.id && activityTab === 'activity',
+  })
+
+  const addActivityMutation = useMutation({
+    mutationFn: (payload: any) => api.post(`/contacts/${selected.id}/activities`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contact-activities', selected.id] })
+      setNewNote('')
     },
   })
 
@@ -137,71 +161,112 @@ export default function ContactsPage() {
 
         {/* Detail panel */}
         {selected && (
-          <div className="w-72 bg-white rounded-xl border border-gray-200 p-5 space-y-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">
+          <div className="w-80 bg-white rounded-xl border border-gray-200 flex-shrink-0 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900 text-sm truncate">
                 {[selected.firstName, selected.lastName].filter(Boolean).join(' ') || 'Contact'}
               </h2>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-gray-400 hover:text-gray-600 text-xs"
-              >
-                ✕
-              </button>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-xs ml-2">✕</button>
             </div>
 
-            {/* Stage selector */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Stage</label>
-              <div className="relative">
-                <select
-                  value={selected.stage}
-                  onChange={(e) => {
-                    const newStage = e.target.value
-                    setSelected({ ...selected, stage: newStage })
-                    updateMutation.mutate({ id: selected.id, data: { stage: newStage } })
-                  }}
-                  className="w-full appearance-none text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s} className="capitalize">{s}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              </div>
+            {/* Sub-tabs */}
+            <div className="flex border-b border-gray-100">
+              {(['details', 'activity'] as const).map((t) => (
+                <button key={t} onClick={() => setActivityTab(t)}
+                  className={`flex-1 py-2 text-xs font-medium capitalize ${
+                    activityTab === t ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+                  }`}>{t}</button>
+              ))}
             </div>
 
-            {/* Fields */}
-            {[
-              { label: 'Email',   value: selected.email },
-              { label: 'Phone',   value: selected.phone },
-              { label: 'Company', value: selected.company },
-              { label: 'Source',  value: selected.source },
-              { label: 'Score',   value: selected.score !== undefined ? `${selected.score}/100` : null },
-            ].map(({ label, value }) =>
-              value ? (
-                <div key={label}>
-                  <p className="text-xs font-medium text-gray-400">{label}</p>
-                  <p className="text-sm text-gray-800 mt-0.5">{value}</p>
-                </div>
-              ) : null
-            )}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {activityTab === 'details' ? (
+                <>
+                  {/* Stage selector */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Stage</label>
+                    <div className="relative">
+                      <select value={selected.stage}
+                        onChange={(e) => {
+                          const newStage = e.target.value
+                          setSelected({ ...selected, stage: newStage })
+                          updateMutation.mutate({ id: selected.id, data: { stage: newStage } })
+                        }}
+                        className="w-full appearance-none text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {STAGES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
 
-            {selected.notes && (
-              <div>
-                <p className="text-xs font-medium text-gray-400">Notes</p>
-                <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{selected.notes}</p>
-              </div>
-            )}
+                  {[
+                    { label: 'Email',   value: selected.email },
+                    { label: 'Phone',   value: selected.phone },
+                    { label: 'Company', value: selected.company },
+                    { label: 'Source',  value: selected.source },
+                    { label: 'Score',   value: selected.score !== undefined ? `${selected.score}/100` : null },
+                  ].map(({ label, value }) =>
+                    value ? (
+                      <div key={label}>
+                        <p className="text-xs font-medium text-gray-400">{label}</p>
+                        <p className="text-sm text-gray-800 mt-0.5">{value}</p>
+                      </div>
+                    ) : null
+                  )}
 
-            <button
-              onClick={() => {
-                if (confirm('Delete this contact?')) deleteMutation.mutate(selected.id)
-              }}
-              className="w-full text-sm text-red-500 hover:text-red-700 py-2 border border-red-200 rounded-lg hover:bg-red-50 mt-2"
-            >
-              Delete contact
-            </button>
+                  {selected.notes && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-400">Notes</p>
+                      <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{selected.notes}</p>
+                    </div>
+                  )}
+
+                  <button onClick={() => { if (confirm('Delete this contact?')) deleteMutation.mutate(selected.id) }}
+                    className="w-full text-sm text-red-500 hover:text-red-700 py-2 border border-red-200 rounded-lg hover:bg-red-50 mt-2">
+                    Delete contact
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Add note */}
+                  <div className="flex gap-2">
+                    <input value={newNote} onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Add a note..."
+                      className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <button onClick={() => addActivityMutation.mutate({ type: 'note', summary: newNote })}
+                      disabled={!newNote.trim() || addActivityMutation.isPending}
+                      className="p-1.5 bg-blue-600 text-white rounded-lg disabled:opacity-40">
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Timeline */}
+                  {(activities as any[]).length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                      <Clock className="w-6 h-6 mx-auto mb-1 opacity-30" />
+                      <p className="text-xs">No activity yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(activities as any[]).map((a: any) => (
+                        <div key={a.id} className="flex gap-2">
+                          <div className="mt-0.5 flex-shrink-0">
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${ACTIVITY_COLORS[a.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                              {a.type}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-800">{a.summary}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{new Date(a.createdAt).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

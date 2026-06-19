@@ -5,7 +5,9 @@ import com.chatplatform.core.dto.ApiResponse;
 import com.chatplatform.core.dto.PagedResponse;
 import com.chatplatform.core.dto.contact.ContactDto;
 import com.chatplatform.core.entity.Contact;
+import com.chatplatform.core.entity.ContactActivity;
 import com.chatplatform.core.exception.ResourceNotFoundException;
+import com.chatplatform.core.repository.ContactActivityRepository;
 import com.chatplatform.core.repository.ContactRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,6 +27,7 @@ import java.util.UUID;
 public class ContactController {
 
     private final ContactRepository contactRepo;
+    private final ContactActivityRepository activityRepo;
 
     /**
      * GET /api/v1/contacts?stage=new&search=john&page=0&size=20
@@ -139,8 +143,41 @@ public class ContactController {
         )));
     }
 
+    /** GET /api/v1/contacts/{id}/activities */
+    @GetMapping("/{id}/activities")
+    public ResponseEntity<ApiResponse<PagedResponse<ContactActivity>>> activities(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Page<ContactActivity> result = activityRepo
+                .findByContactIdOrderByCreatedAtDesc(id, PageRequest.of(page, size));
+        return ResponseEntity.ok(ApiResponse.ok(PagedResponse.from(result)));
+    }
+
+    /** POST /api/v1/contacts/{id}/activities */
+    @PostMapping("/{id}/activities")
+    public ResponseEntity<ApiResponse<ContactActivity>> addActivity(
+            @PathVariable UUID id,
+            @RequestBody ActivityRequest req,
+            JwtAuthenticationToken auth) {
+
+        UUID actorId = UUID.fromString(auth.getToken().getSubject());
+        ContactActivity activity = activityRepo.save(ContactActivity.builder()
+                .tenantId(TenantContext.getTenantId())
+                .contactId(id)
+                .type(req.type())
+                .summary(req.summary())
+                .metadata(req.metadata() != null ? req.metadata() : Map.of())
+                .actorId(actorId)
+                .build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(activity));
+    }
+
     private String str(Map<String, Object> body, String key) {
         Object v = body.get(key);
         return v != null ? v.toString() : null;
     }
+
+    record ActivityRequest(String type, String summary, Map<String, Object> metadata) {}
 }

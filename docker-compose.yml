@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ================================================================
 # chatplatform — Full Development Docker Compose
 # Usage: docker compose up -d
