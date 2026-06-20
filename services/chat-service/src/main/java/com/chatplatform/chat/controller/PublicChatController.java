@@ -106,11 +106,19 @@ public class PublicChatController {
                 // Get or create conversation
                 String ip = request.getRemoteAddr();
                 String ua = request.getHeader("User-Agent");
+                boolean isNew = !conversationService.exists(bot, sessionKey);
                 Conversation conv = conversationService.getOrCreate(bot, sessionKey, ip, ua);
 
+                if (isNew) {
+                    eventPublisher.publishConversationStarted(conv);
+                }
+
                 // Save user message
-                conversationService.saveMessage(conv.getId(), bot.getTenantId(),
+                Message userMsg = conversationService.saveMessage(conv.getId(), bot.getTenantId(),
                         "user", userMessage, null, null, null, null);
+
+                // Publish user message analytics
+                eventPublisher.publishMessageSent(conv, userMsg);
 
                 // Get recent history
                 List<Message> history = conversationService.getRecentMessages(conv.getId());
@@ -135,7 +143,7 @@ public class PublicChatController {
 
                 emitter.complete();
 
-                // Publish analytics event
+                // Publish assistant message analytics
                 eventPublisher.publishMessageSent(conv, assistantMsg);
 
             } catch (Exception e) {

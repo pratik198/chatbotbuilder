@@ -24,6 +24,13 @@ public class ConversationService {
     private final MessageRepository messageRepo;
 
     /**
+     * Returns true if an active conversation already exists for this session.
+     */
+    public boolean exists(Bot bot, String sessionKey) {
+        return conversationRepo.findBySessionKeyAndBotIdAndStatus(sessionKey, bot.getId(), "active").isPresent();
+    }
+
+    /**
      * Returns an existing active conversation for this session,
      * or creates a new one.
      */

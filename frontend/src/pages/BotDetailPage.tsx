@@ -102,6 +102,8 @@ export default function BotDetailPage() {
       widgetConfig: { ...(f.widgetConfig ?? {}), [key]: value },
     }))
 
+  const testSessionKey = useRef(`test-${id}-${Date.now()}`)
+
   const sendTestMessage = async () => {
     const text = testInput.trim()
     if (!text || !bot?.id || testLoading) return
@@ -111,9 +113,38 @@ export default function BotDetailPage() {
     setTestLoading(true)
 
     try {
-      const resp = await api.post(`/bots/${bot.id}/test-chat`, { message: text })
-      const content = resp.data?.data?.content || 'No response'
-      setTestMsgs((m) => [...m, { role: 'assistant', text: content }])
+      if (bot.status === 'active' && bot.embedToken) {
+        // Use public SSE endpoint — saves conversations to DB
+        const resp = await fetch('/public/v1/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ embedToken: bot.embedToken, sessionKey: testSessionKey.current, message: text }),
+        })
+        if (!resp.body) throw new Error('no body')
+        const reader = resp.body.getReader()
+        const dec = new TextDecoder()
+        let buf = '', content = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += dec.decode(value, { stream: true })
+          const lines = buf.split('\n'); buf = lines.pop() ?? ''
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue
+            try {
+              const evt = JSON.parse(line.slice(5).trim())
+              if (evt.type === 'done' && evt.content) content = evt.content
+              if (evt.type === 'error') content = `Error: ${evt.message}`
+            } catch {}
+          }
+        }
+        setTestMsgs((m) => [...m, { role: 'assistant', text: content || 'No response.' }])
+      } else {
+        // Draft bot — authenticated endpoint (no conversation saved)
+        const resp = await api.post(`/bots/${bot.id}/test-chat`, { message: text })
+        const content = resp.data?.data?.content || 'No response'
+        setTestMsgs((m) => [...m, { role: 'assistant', text: content }])
+      }
     } catch {
       setTestMsgs((m) => [...m, { role: 'assistant', text: 'Error: could not reach the AI service.' }])
     } finally {
