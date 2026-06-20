@@ -30,7 +30,13 @@ export default function LiveChatPage() {
   useEffect(() => {
     if (!accessToken || !user?.id) return
 
-    const wsUrl = `${window.location.origin.replace('http', 'ws')}/ws/inbox?token=${accessToken}&agentId=${user.id}&tenantId=__auto__`
+    let tenantId = ''
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]))
+      tenantId = payload.tenant_id || ''
+    } catch { /* ignore */ }
+
+    const wsUrl = `${window.location.origin.replace('http', 'ws')}/ws/inbox?token=${accessToken}&userId=${user.id}&tenantId=${tenantId}`
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

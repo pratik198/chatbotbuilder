@@ -22,49 +22,45 @@ public class EventPublisher {
     private final RabbitTemplate rabbitTemplate;
 
     public void publishMessageSent(Conversation conv, Message message) {
-        Map<String, Object> event = Map.of(
-            "eventType",      "message.sent",
-            "tenantId",       conv.getTenantId().toString(),
-            "botId",          conv.getBotId().toString(),
-            "conversationId", conv.getId().toString(),
-            "messageId",      message.getId().toString(),
-            "role",           message.getRole(),
-            "timestamp",      Instant.now().toString()
-        );
+        Map<String, Object> event = new java.util.HashMap<>();
+        event.put("eventType",      "message.sent");
+        event.put("tenantId",       conv.getTenantId().toString());
+        event.put("botId",          conv.getBotId().toString());
+        event.put("conversationId", conv.getId().toString());
+        event.put("messageId",      message.getId().toString());
+        event.put("messageRole",    message.getRole());
+        event.put("occurredAt",     Instant.now().toString());
         publish("message.sent", event);
     }
 
     public void publishConversationStarted(Conversation conv) {
-        Map<String, Object> event = Map.of(
-            "eventType",      "conversation.started",
-            "tenantId",       conv.getTenantId().toString(),
-            "botId",          conv.getBotId().toString(),
-            "conversationId", conv.getId().toString(),
-            "channel",        conv.getChannel(),
-            "timestamp",      Instant.now().toString()
-        );
+        Map<String, Object> event = new java.util.HashMap<>();
+        event.put("eventType",      "conversation.started");
+        event.put("tenantId",       conv.getTenantId().toString());
+        event.put("botId",          conv.getBotId().toString());
+        event.put("conversationId", conv.getId().toString());
+        event.put("channel",        conv.getChannel());
+        event.put("occurredAt",     Instant.now().toString());
         publish("conversation.started", event);
     }
 
     public void publishLeadCaptured(java.util.UUID conversationId, java.util.UUID tenantId, java.util.UUID botId) {
-        Map<String, Object> event = Map.of(
-            "eventType",      "lead.captured",
-            "tenantId",       tenantId.toString(),
-            "botId",          botId.toString(),
-            "conversationId", conversationId.toString(),
-            "timestamp",      Instant.now().toString()
-        );
+        Map<String, Object> event = new java.util.HashMap<>();
+        event.put("eventType",      "lead.captured");
+        event.put("tenantId",       tenantId.toString());
+        event.put("botId",          botId.toString());
+        event.put("conversationId", conversationId.toString());
+        event.put("occurredAt",     Instant.now().toString());
         publish("lead.captured", event);
     }
 
     public void publishHandoffRequested(Conversation conv) {
-        Map<String, Object> event = Map.of(
-            "eventType",      "handoff.requested",
-            "tenantId",       conv.getTenantId().toString(),
-            "botId",          conv.getBotId().toString(),
-            "conversationId", conv.getId().toString(),
-            "timestamp",      Instant.now().toString()
-        );
+        Map<String, Object> event = new java.util.HashMap<>();
+        event.put("eventType",      "handoff.requested");
+        event.put("tenantId",       conv.getTenantId().toString());
+        event.put("botId",          conv.getBotId().toString());
+        event.put("conversationId", conv.getId().toString());
+        event.put("occurredAt",     Instant.now().toString());
         publish("handoff.requested", event);
     }
 

@@ -27,6 +27,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
         // Authenticated — agents connect here to handle live chat
         // e.g. ws://api.yourdomain.com/ws/inbox
         registry.addHandler(agentHandler, "/ws/inbox")
-                .setAllowedOrigins("https://app.yourdomain.com", "http://localhost:3000");
+                .setAllowedOrigins("*");
     }
 }

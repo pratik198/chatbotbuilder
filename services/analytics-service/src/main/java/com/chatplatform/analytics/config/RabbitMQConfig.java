@@ -28,7 +28,7 @@ public class RabbitMQConfig {
     public Binding analyticsBinding(Queue analyticsQueue, TopicExchange analyticsExchange) {
         return BindingBuilder.bind(analyticsQueue)
                              .to(analyticsExchange)
-                             .with("analytics.#");
+                             .with("#");
     }
 
     @Bean

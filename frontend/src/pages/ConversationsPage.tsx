@@ -9,7 +9,7 @@ export default function ConversationsPage() {
 
   const { data: convData, isLoading } = useQuery({
     queryKey: ['conversations'],
-    queryFn: () => api.get('/conversations').then((r) => r.data.data?.items ?? r.data.data ?? []),
+    queryFn: () => api.get('/conversations').then((r) => r.data?.items ?? r.data?.data?.items ?? []),
     placeholderData: [],
   })
 
@@ -17,7 +17,7 @@ export default function ConversationsPage() {
 
   const { data: messages, isLoading: loadingMessages } = useQuery({
     queryKey: ['messages', selected?.id],
-    queryFn: () => api.get(`/conversations/${selected.id}/messages`).then((r) => r.data.data?.items ?? []),
+    queryFn: () => api.get(`/conversations/${selected.id}/messages`).then((r) => r.data?.items ?? r.data?.data?.items ?? []),
     enabled: !!selected,
     placeholderData: [],
   })
